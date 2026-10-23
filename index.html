@@ -144,6 +144,15 @@ dl.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .route.ok{background:var(--carbon-soft)} .route.warn{background:var(--maint-soft)} .route.none{background:var(--surface-2)}
 .modal{position:fixed;inset:0;background:rgba(10,16,28,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
 .modal.open{display:flex}
+.sheet.man{max-width:560px}
+.man-h{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.man-x{border:0;background:none;font-size:22px;color:var(--muted);line-height:1}
+.man h4{margin:14px 0 4px;font-size:14px;color:var(--accent)}
+.man ol,.man ul{margin:0;padding-left:20px}
+.man li{margin:2px 0}
+.man .src{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.btn.sm{padding:5px 12px;font-size:13px;font-weight:500}
+kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--surface-2)}
 .sheet{background:var(--surface);color:var(--fg);border-radius:14px;max-width:460px;width:100%;max-height:90%;overflow:auto;padding:18px 20px;box-shadow:var(--shadow)}
 .sheet h3{margin:0 0 4px;font-size:18px}
 .sheet label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
@@ -186,6 +195,7 @@ dl.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
         <button class="ib" id="ib-cut" aria-pressed="false" aria-label="剖切至示範樓層"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/><path d="M2 13h20" stroke-dasharray="2 2"/></svg><span class="tip">剖切至示範樓層</span></button>
         <button class="ib" id="ib-tree" aria-pressed="true" aria-label="模型瀏覽器"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/></svg><span class="tip">模型瀏覽器</span></button>
         <button class="ib" id="ib-prop" aria-label="屬性"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span class="tip">屬性</span></button>
+        <button class="ib" id="ib-guide" aria-label="系統操作說明"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/><path d="M9 8h6M9 12h5"/></svg><span class="tip">系統操作說明</span></button>
         <button class="ib" id="ib-find" aria-label="搜尋元件"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg><span class="tip">搜尋元件</span></button>
       </div>
       <div class="tree" id="tree"><div class="tree-h"><span>模型瀏覽器</span><button id="tree-x" aria-label="關閉模型瀏覽器">×</button></div><div class="tree-b" id="tree-b"></div></div>
@@ -204,7 +214,7 @@ dl.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
         </div>
       </div>
       <div class="legend" id="legend"></div>
-      <div class="hint" id="hint">拖曳旋轉 · 滾輪縮放 · 點選構件看護照</div>
+      <div class="hint" id="hint">左鍵旋轉 · 中鍵／右鍵平移 · 滾輪縮放 · 點選構件看護照</div>
     </section>
 
     <aside class="panel">
@@ -214,6 +224,9 @@ dl.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
   </div>
 </div>
 
+<div class="modal" id="manual"><div class="sheet man" role="dialog" aria-labelledby="man-t">
+  <div class="man-h"><h3 id="man-t">操作手冊</h3><button type="button" class="man-x" id="man-x" aria-label="關閉">×</button></div>
+  <div id="man-b"></div></div></div>
 <div class="modal" id="modal">
   <form class="sheet" id="rform">
     <h3>報修此設備</h3>
@@ -334,6 +347,8 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 2000);
 const controls = new THREE.OrbitControls(camera, canvas);
 controls.enableDamping = true; controls.dampingFactor = .08;
+controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.PAN, RIGHT: THREE.MOUSE.PAN };
+canvas.addEventListener('mousedown', e => { if (e.button === 1) e.preventDefault(); });
 const hemi = new THREE.HemisphereLight(0xffffff, 0x8899aa, .75); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, .75); sun.position.set(40,80,30); scene.add(sun);
 const fill = new THREE.DirectionalLight(0xffffff, .25); fill.position.set(-40,30,-30); scene.add(fill);
@@ -517,7 +532,8 @@ function renderCard(){
     <dt>預期壽命</dt><dd>${V(life)}${it.life?' 年':''}</dd><dt>標稱尺寸</dt><dd>${V(it.size||T)}</dd>
     <dt>更換成本</dt><dd>${V(T)}</dd><dt>保固說明</dt><dd>${it.noWarranty?'—':'不當造成故障不負保固責任'}</dd>
     <dt>零件保固期</dt><dd>${wy}</dd><dt>保固廠商</dt><dd>${V(T)}</dd>
-    <dt>安裝日期</dt><dd>${INSTALL}（示範：以使照年估列）</dd></dl>
+    <dt>安裝日期</dt><dd>${INSTALL}（示範：以使照年估列）</dd>
+    <dt>操作手冊</dt><dd><button type="button" class="btn ghost sm" id="open-man">開啟手冊</button></dd></dl>
     <div class="sec-h">建材護照擴充</div><dl class="kv">
     <dt>護照編號</dt><dd class="pp-id">${esc(it.pid)}</dd><dt>建築層次</dt><dd>${esc(it.layer)}（${ly.y}）</dd>
     <dt>構件層級</dt><dd>${esc(it.nen)}</dd><dt>數量</dt><dd>${V(it.qty)} ${it.qty===T?'':esc(it.unit)}</dd></dl>
@@ -542,10 +558,12 @@ function renderCard(){
      <div class="tags"><span class="tag" style="border-color:${ly.c}">${esc(it.layer)}｜${ly.y}</span><span class="tag">${esc(it.space)}</span><span class="pill ${ws}">${WTXT[ws]}</span></div>
      <div class="tabs" role="tablist">${tabs.map(([k,t])=>`<button role="tab" data-t="${k}" aria-selected="${S.tab===k}">${t}</button>`).join('')}</div></div>
    <div class="card-b">${body}</div>
-   <div class="card-f"><button class="btn primary" id="rep">報修此設備</button></div>`;
+   <div class="card-f"><button class="btn ghost" id="man2">操作手冊</button><button class="btn primary" id="rep">報修此設備</button></div>`;
   card.querySelector('#bk').onclick=()=>select(null);
   card.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t; renderCard();});
   card.querySelector('#rep').onclick=()=>openRepair(it);
+  const om=card.querySelector('#open-man'); if(om) om.onclick=()=>openManual(it);
+  card.querySelector('#man2').onclick=()=>openManual(it);
 }
 function renderList(card){
   const L=items().filter(i=>!S.q || (i.name+i.space+i.layer).includes(S.q));
@@ -579,6 +597,52 @@ function flyTo(target, dist){
 
 /* ================= 報修 ================= */
 const modal=document.getElementById('modal'); let repIt=null; let seq=12;
+const MANUALS = {
+  toilet:{use:['按壓沖水鈕：大號全按、小號輕按','長期不在家請關閉止水閥'],care:['每週以中性清潔劑清潔，勿用強酸','每年檢查水箱進水閥與落水墊片'],faq:[['水箱一直進水','落水墊片老化或浮球卡住，先關止水閥再報修'],['馬桶底部滲水','底座矽利康或法蘭圈老化，請報修']]},
+  basin:{use:['龍頭左熱右冷','面盆下方設有止水閥'],care:['每月清潔排水口毛髮','浴櫃保持乾燥，避免長時間積水'],faq:[['排水變慢','存水彎堵塞，可拆下清潔或報修'],['龍頭滴水','陶瓷閥芯磨損，請報修更換']]},
+  shower:{use:['玻璃門向外推開，使用後保持門縫通風','花灑高度可沿滑桿調整'],care:['每次使用後刮除玻璃水痕','每季檢查鉸鍊螺絲與止水條'],faq:[['門關不緊','鉸鍊鬆動，請勿自行調整玻璃，請報修'],['矽利康發霉','需重新施作，請報修']]},
+  hood:{use:['烹調前先開啟，烹調後再運轉 3～5 分鐘'],care:['每半年清洗濾網','每年清潔油杯與風扇'],faq:[['吸力變弱','濾網油垢過多，清洗後仍不佳請報修'],['異音','馬達或風扇鬆動，請報修']]},
+  stove:{use:['確認瓦斯開關開啟後再點火','離開廚房前確認火已熄滅'],care:['爐架與玻璃面板冷卻後再清潔'],faq:[['無法點火','檢查電池與瓦斯開關，仍無法使用請報修']]},
+  sink:{use:['勿倒入油脂與廚餘'],care:['每月以熱水沖洗排水管'],faq:[['排水不順','排水管堵塞，請報修']]},
+  heater:{use:['熱水器須保持通風，勿封閉陽台'],care:['每年請專業人員檢查排氣與瓦斯管線'],faq:[['熱水不熱','檢查瓦斯與電池，仍異常請報修'],['有瓦斯味','立即關閉瓦斯、開窗，勿使用電器開關']]},
+  winx:{use:['開關時握住把手平推，勿用力甩動','颱風前確認窗扇關緊並上鎖'],care:['每季清理軌道與排水孔','每年檢查氣密條是否硬化'],faq:[['推拉卡卡','軌道積塵，清潔後仍卡請報修'],['窗邊滲水','排水孔堵塞或窗角防水老化，請報修']]},
+  slider:{use:['開關時握住把手平推','颱風前確認門扇關緊並上鎖'],care:['每季清理軌道與門檻排水'],faq:[['推拉卡卡','滑輪磨損，請報修']]},
+  door:{use:['關門時勿用力甩門'],care:['每年檢查鉸鍊與門鎖'],faq:[['門關不上','鉸鍊下垂或門框變形，請報修']]},
+  perf:{use:['陽台欄板不可攀爬或懸掛重物'],care:['每年目視檢查塗裝剝落與固定件鏽蝕（臨海鹽害）'],faq:[['塗裝起泡','鹽害造成，請報修由管委會統一處理']]},
+  rack:{use:['依載重使用，勿超載'],care:['每年檢查鋼索與升降機構'],faq:[['無法升降','鋼索纏繞或斷裂，請報修']]},
+  tall:{use:['依原廠說明操作，勿堵塞散熱孔'],care:['定期清潔門封'],faq:[['無法啟動','檢查電源開關，仍異常請報修']]},
+  counter:{use:['熱鍋請放隔熱墊再放上檯面'],care:['檯面接縫保持乾燥'],faq:[['門片下垂','鉸鍊需調整，請報修']]}
+};
+MANUALS.winz = MANUALS.winx;
+const GENERIC_MAN = {use:['依原廠說明使用'],care:['依維護週期檢查'],faq:[['設備異常','請使用「報修此設備」送出']]};
+const manual = document.getElementById('manual');
+function openManual(it){
+  const m = MANUALS[it.shape] || GENERIC_MAN;
+  document.getElementById('man-t').textContent = it.name + '｜操作手冊';
+  document.getElementById('man-b').innerHTML = `<div class="pp-id">${esc(it.pid)}｜${esc(it.loc)}</div>
+    <h4>使用方式</h4><ol>${m.use.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>
+    <h4>日常保養</h4><ul>${m.care.map(x=>`<li>${esc(x)}</li>`).join('')}${it.cycle&&it.cycle!=='依報修'?`<li>建議週期：${esc(it.cycle)}</li>`:''}</ul>
+    <h4>常見問題</h4><dl class="kv">${m.faq.map(([q,a])=>`<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join('')}</dl>
+    <h4>原廠文件</h4><div class="src"><span class="tag">原廠操作手冊 PDF</span><span class="tbd">待上傳</span><span class="tag">保固書</span><span class="tbd">待上傳</span></div>
+    <div class="note">示範內容。正式版可上傳原廠 PDF，住戶掃戶內 QR 即可查看，不必保留紙本手冊。</div>
+    <div class="card-f" style="padding:12px 0 0;border:0"><button type="button" class="btn ghost" id="man-close">關閉</button><button type="button" class="btn primary" id="man-rep">仍有問題，報修此設備</button></div>`;
+  document.getElementById('man-close').onclick = closeManual;
+  document.getElementById('man-rep').onclick = () => { closeManual(); openRepair(it); };
+  manual.classList.add('open');
+}
+function openGuide(){
+  document.getElementById('man-t').textContent = '系統操作說明';
+  document.getElementById('man-b').innerHTML = `
+    <h4>瀏覽模型</h4><ul><li>左鍵拖曳：旋轉</li><li>中鍵或右鍵拖曳：平移</li><li>滾輪：縮放；「全景」回到預設視角</li><li>「剖切」可切到示範樓層，點橘色樓層進入示範戶</li></ul>
+    <h4>查看建材護照</h4><ul><li>點選構件，或從左側模型瀏覽器、右側清單選擇</li><li>「屬性」看廠商、型號、壽命、保固，並可開啟該設備的操作手冊</li><li>「減碳／循環／維護」看擴充資訊與維修履歷</li><li>上方「著色」可依材質、建築層次或保固狀態上色</li></ul>
+    <h4>報修</h4><ul><li>在設備頁按「報修此設備」，系統帶入型號與保固，送出後寫入維修履歷</li></ul>
+    <div class="note">示範系統：格局、設備與保固資料為示意。</div>`;
+  manual.classList.add('open');
+}
+function closeManual(){ manual.classList.remove('open'); }
+document.getElementById('man-x').onclick = closeManual;
+manual.addEventListener('click', e => { if (e.target === manual) closeManual(); });
+document.getElementById('ib-guide').onclick = openGuide;
 function openRepair(it){
   repIt=it; const ws=warrState(it);
   document.getElementById('r-id').textContent=it.pid+'｜'+it.loc;
@@ -587,7 +651,7 @@ function openRepair(it){
 }
 document.getElementById('r-cancel').onclick=()=>{modal.classList.remove('open');};
 modal.addEventListener('click',e=>{ if(e.target===modal) modal.classList.remove('open'); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') modal.classList.remove('open'); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ modal.classList.remove('open'); closeManual(); } });
 document.getElementById('rform').addEventListener('submit',e=>{
   e.preventDefault(); const d=new Date(); const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const no=`R${d.getFullYear()-1911}-${String(++seq).padStart(4,'0')}`;
@@ -635,7 +699,7 @@ document.getElementById('t-sys').onclick=e=>{ S.sys=!S.sys; e.currentTarget.setA
 document.getElementById('t-lbl').onclick=e=>{ S.lbl=!S.lbl; e.currentTarget.setAttribute('aria-pressed',S.lbl); };
 document.getElementById('t-reset').onclick=resetCam;
 document.getElementById('ib-fit').onclick=resetCam;
-function setNav(pan){ controls.mouseButtons.LEFT = pan?THREE.MOUSE.PAN:THREE.MOUSE.ROTATE; document.getElementById('ib-pan').setAttribute('aria-pressed',pan); document.getElementById('ib-orbit').setAttribute('aria-pressed',!pan); document.getElementById('hint').textContent = (pan?'拖曳平移':'拖曳旋轉')+' · 滾輪縮放 · 點選構件看護照'; }
+function setNav(pan){ controls.mouseButtons.LEFT = pan?THREE.MOUSE.PAN:THREE.MOUSE.ROTATE; document.getElementById('ib-pan').setAttribute('aria-pressed',pan); document.getElementById('ib-orbit').setAttribute('aria-pressed',!pan); document.getElementById('hint').textContent = (pan?'左鍵平移':'左鍵旋轉')+' · 中鍵／右鍵平移 · 滾輪縮放 · 點選構件看護照'; }
 document.getElementById('ib-orbit').onclick=()=>setNav(false);
 document.getElementById('ib-pan').onclick=()=>setNav(true);
 document.getElementById('ib-cut').onclick=()=>{ setCut(!S.cut); if(S.cut){ flyTo(new THREE.Vector3(-17,demoF*FH,0), 110); } };
