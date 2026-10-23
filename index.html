@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>建材護照示範系統</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,6 +38,8 @@
   --maint:#f0a35a; --maint-soft:#3a2714; --ok:#6fcf9f; --warn:#f0a35a; --none:#7d889b;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 20px rgba(0,0,0,.25); color-scheme:dark}
 html,body{height:100%}
+[hidden]{display:none!important}
+body{margin:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.55}
 *{box-sizing:border-box}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -149,6 +156,8 @@ dl.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
+</head>
+<body>
 
 <div class="app">
   <header class="top">
@@ -652,3 +661,6 @@ function loop(){
 applyTheme(); resize(); setView('bldg'); loop();
 })();
 </script>
+
+</body>
+</html>
