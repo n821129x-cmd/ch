@@ -1,0 +1,654 @@
+<title>建材護照示範系統</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one-screen console — 3D stage on the left, passport panel on the right; stacks on phones */
+:root{
+  --bg:#eef1f5; --surface:#ffffff; --surface-2:#f4f6fa; --line:#d8dee8;
+  --fg:#18233a; --muted:#5d6a80; --stage:#e4e9f0; --stage-grid:#cfd7e2;
+  --accent:#2f5597; --accent-ink:#ffffff; --accent-soft:#e2eaf7; --tool:#8fb3bd; --sel:#2563c9; --sel-soft:#dfe9fb;
+  --carbon:#2e7d5b; --carbon-soft:#e3f1e8;
+  --circ:#0a6fb8; --circ-soft:#dfeefa;
+  --maint:#c96d12; --maint-soft:#fcecd9;
+  --ok:#2e7d5b; --warn:#c96d12; --none:#8a94a6;
+  --shadow:0 1px 2px rgba(20,35,60,.06),0 6px 18px rgba(20,35,60,.06);
+  --f-display:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1520; --surface:#162030; --surface-2:#1b2738; --line:#2a3850;
+  --fg:#e6ecf5; --muted:#9aa8bd; --stage:#121b29; --stage-grid:#22314a;
+  --accent:#7ea6e8; --accent-ink:#0f1520; --accent-soft:#1f2f4a; --tool:#4b6a74; --sel:#8fb6ff; --sel-soft:#1d2e4d;
+  --carbon:#6fcf9f; --carbon-soft:#183326; --circ:#69b6ef; --circ-soft:#15304a;
+  --maint:#f0a35a; --maint-soft:#3a2714; --ok:#6fcf9f; --warn:#f0a35a; --none:#7d889b;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 20px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1520; --surface:#162030; --surface-2:#1b2738; --line:#2a3850;
+  --fg:#e6ecf5; --muted:#9aa8bd; --stage:#121b29; --stage-grid:#22314a;
+  --accent:#7ea6e8; --accent-ink:#0f1520; --accent-soft:#1f2f4a; --tool:#4b6a74; --sel:#8fb6ff; --sel-soft:#1d2e4d;
+  --carbon:#6fcf9f; --carbon-soft:#183326; --circ:#69b6ef; --circ-soft:#15304a;
+  --maint:#f0a35a; --maint-soft:#3a2714; --ok:#6fcf9f; --warn:#f0a35a; --none:#7d889b;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 20px rgba(0,0,0,.25); color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.55}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{height:100%;display:flex;flex-direction:column;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;gap:12px}
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;min-width:0}
+.brand h1{margin:0;font-family:var(--f-display);font-weight:900;font-size:22px;letter-spacing:.02em;text-wrap:balance}
+.brand .crumb{color:var(--muted);font-size:13px}
+.crumb b{color:var(--fg);font-weight:500}
+.spacer{flex:1}
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:7px;font-size:13px;color:var(--muted);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:500}
+.demo-tag{font-size:12px;color:var(--maint);background:var(--maint-soft);padding:3px 10px;border-radius:99px;white-space:nowrap}
+.main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:12px}
+.stage{position:relative;min-height:0;border-radius:14px;overflow:hidden;background:var(--stage);border:1px solid var(--line)}
+#cv{display:block;width:100%;height:100%;touch-action:none}
+.labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;transform:translate(-50%,-50%);font-size:12px;font-weight:500;color:var(--fg);background:color-mix(in srgb,var(--surface) 82%,transparent);padding:1px 7px;border-radius:6px;white-space:nowrap;border:1px solid var(--line)}
+.lbl.hot{background:var(--maint);color:#fff;border-color:transparent;pointer-events:auto;cursor:pointer;font-weight:700}
+.lbl.sys{color:var(--accent);font-weight:700}
+.tools{position:absolute;right:12px;top:64px;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.iconbar{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 24px)}
+.ib{width:40px;height:40px;border-radius:50%;border:0;background:var(--tool);color:#fff;display:grid;place-items:center;padding:0;position:relative}
+.ib svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ib[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.ib:disabled{opacity:.35;cursor:not-allowed}
+.ib .tip{position:absolute;top:46px;left:50%;transform:translateX(-50%);font-size:11px;white-space:nowrap;background:var(--fg);color:var(--bg);padding:2px 7px;border-radius:5px;opacity:0;pointer-events:none;transition:opacity .15s;z-index:5}
+.ib:hover .tip,.ib:focus-visible .tip{opacity:1}
+.tree{position:absolute;left:12px;top:64px;bottom:56px;width:250px;background:color-mix(in srgb,var(--surface) 94%,transparent);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow)}
+.tree-h{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);font-weight:700;font-size:13px}
+.tree-h button{border:0;background:none;color:var(--muted);font-size:18px;line-height:1}
+.tree-b{overflow:auto;padding:6px 6px 10px;font-size:13px}
+.tree details{margin-left:10px}
+.tree summary{cursor:pointer;padding:3px 6px;border-radius:6px;list-style:none;display:flex;gap:6px;align-items:center}
+.tree summary::-webkit-details-marker{display:none}
+.tree summary::before{content:"▸";color:var(--muted);font-size:11px;transition:transform .15s}
+.tree details[open]>summary::before{transform:rotate(90deg)}
+.tree summary:hover{background:var(--surface-2)}
+.tleaf{display:flex;gap:6px;align-items:center;width:calc(100% - 10px);margin-left:10px;border:0;background:none;text-align:left;padding:3px 6px;border-radius:6px;font-size:13px}
+.tleaf:hover{background:var(--surface-2)}
+.tleaf.on{background:var(--sel-soft);color:var(--sel);font-weight:700}
+.tmat{margin-left:34px;color:var(--muted);font-size:12px;padding:1px 0}
+@media (max-width:900px){.tree{width:190px}.tools{top:auto;bottom:56px}.ib{width:34px;height:34px}}
+.tools .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tools .cap{font-size:11px;letter-spacing:.08em;color:var(--muted);background:color-mix(in srgb,var(--surface) 85%,transparent);padding:2px 8px;border-radius:6px}
+.chip{border:1px solid var(--line);background:var(--surface);padding:5px 10px;border-radius:99px;font-size:12px;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:700}
+.legend{position:absolute;left:12px;bottom:12px;display:flex;flex-wrap:wrap;gap:6px 12px;background:color-mix(in srgb,var(--surface) 90%,transparent);border:1px solid var(--line);padding:8px 12px;border-radius:10px;font-size:12px;max-width:calc(100% - 24px)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+.hint{position:absolute;right:12px;bottom:12px;font-size:12px;color:var(--muted);background:color-mix(in srgb,var(--surface) 85%,transparent);padding:4px 10px;border-radius:8px}
+.panel{min-height:0;display:flex;flex-direction:column;gap:12px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpi{border-radius:12px;padding:10px 12px;min-width:0}
+.kpi .k{font-size:12px;font-weight:700;display:flex;justify-content:space-between;gap:4px}
+.kpi .v{font-family:var(--f-display);font-weight:900;font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:11px;color:var(--muted)}
+.kpi.c{background:var(--carbon-soft)} .kpi.c .k,.kpi.c .v{color:var(--carbon)}
+.kpi.r{background:var(--circ-soft)} .kpi.r .k,.kpi.r .v{color:var(--circ)}
+.kpi.m{background:var(--maint-soft)} .kpi.m .k,.kpi.m .v{color:var(--maint)}
+.card{flex:1;min-height:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+.card-h{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.card-b{flex:1;min-height:0;overflow:auto;padding:12px 16px}
+.search{width:100%;border:1px solid var(--line);background:var(--surface-2);border-radius:9px;padding:8px 10px;font:inherit;color:var(--fg)}
+.grp{margin:10px 0 4px;font-size:12px;color:var(--muted);letter-spacing:.06em;display:flex;justify-content:space-between}
+.item{width:100%;text-align:left;border:0;background:transparent;display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:center;padding:7px 8px;border-radius:8px}
+.item:hover{background:var(--surface-2)}
+.item .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{font-size:11px;padding:1px 8px;border-radius:99px;white-space:nowrap}
+.pill.ok{background:var(--carbon-soft);color:var(--ok)} .pill.warn{background:var(--maint-soft);color:var(--warn)} .pill.none{background:var(--surface-2);color:var(--none)}
+.back{border:0;background:none;color:var(--accent);padding:0;font-size:13px;margin-bottom:6px}
+.pp-title{margin:0;font-family:var(--f-display);font-weight:900;font-size:20px;line-height:1.3;text-wrap:balance}
+.pp-id{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{font-size:12px;padding:2px 9px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line)}
+.tabs{display:flex;gap:4px;margin-top:12px}
+.tabs button{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface-2);padding:6px 0;border-radius:8px;font-size:13px;color:var(--muted)}
+.tabs button[aria-selected="true"]{color:#fff;border-color:transparent;font-weight:700}
+.tabs button[data-t="base"][aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.tabs button[data-t="carbon"][aria-selected="true"]{background:var(--carbon)}
+.tabs button[data-t="circ"][aria-selected="true"]{background:var(--circ)}
+.tabs button[data-t="maint"][aria-selected="true"]{background:var(--maint)}
+:root[data-theme="dark"] .tabs button[aria-selected="true"]{color:#0f1520}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tabs button[aria-selected="true"]{color:#0f1520}}
+dl.kv{display:grid;grid-template-columns:7.5em 1fr;gap:6px 12px;margin:0}
+dl.kv dt{color:var(--muted);font-size:13px}
+dl.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.tbd{color:var(--none)}
+.note{font-size:12px;color:var(--muted);background:var(--surface-2);border-radius:8px;padding:8px 10px;margin-top:12px}
+.hist{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.hist li{border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px}
+.hist .d{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.sec-h{font-size:13px;font-weight:700;margin:14px 0 4px}
+.card-f{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px}
+.btn{border:0;border-radius:9px;padding:9px 14px;font-weight:700}
+.btn.primary{background:var(--maint);color:#fff;flex:1}
+.btn.ghost{background:var(--surface-2);border:1px solid var(--line)}
+.route{border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13px}
+.route.ok{background:var(--carbon-soft)} .route.warn{background:var(--maint-soft)} .route.none{background:var(--surface-2)}
+.modal{position:fixed;inset:0;background:rgba(10,16,28,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.sheet{background:var(--surface);color:var(--fg);border-radius:14px;max-width:460px;width:100%;max-height:90%;overflow:auto;padding:18px 20px;box-shadow:var(--shadow)}
+.sheet h3{margin:0 0 4px;font-size:18px}
+.sheet label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+.sheet textarea,.sheet input{width:100%;border:1px solid var(--line);background:var(--surface-2);border-radius:9px;padding:8px 10px;font:inherit;color:var(--fg)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:13px;z-index:30;box-shadow:var(--shadow)}
+@media (max-width:900px){
+  .app{height:auto;min-height:100%}
+  .main{grid-template-columns:1fr}
+  .stage{height:62vh;min-height:360px}
+  .card{max-height:none}
+  .kpi .v{font-size:18px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1>建材護照示範系統</h1>
+      <div class="crumb" id="crumb"><b>示範建案</b></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="seg" role="group" aria-label="檢視層級">
+      <button id="v-bldg" aria-pressed="true">整棟（建築層級）</button>
+      <button id="v-unit" aria-pressed="false">示範戶（住戶層級）</button>
+    </div>
+    <span class="demo-tag">示範系統｜格局與資料為示意</span>
+  </header>
+
+  <div class="main">
+    <section class="stage" aria-label="3D 模型">
+      <canvas id="cv"></canvas>
+      <div class="labels" id="labels"></div>
+      <div class="iconbar" role="toolbar" aria-label="檢視工具">
+        <button class="ib" id="ib-orbit" aria-pressed="true" aria-label="旋轉"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="4"/><path d="M12 3v18"/><path d="M17 5l3 3-3 3" /></svg><span class="tip">旋轉</span></button>
+        <button class="ib" id="ib-pan" aria-pressed="false" aria-label="平移"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg><span class="tip">平移</span></button>
+        <button class="ib" id="ib-fit" aria-label="全景"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="3 3"/><circle cx="12" cy="12" r="3"/></svg><span class="tip">全景</span></button>
+        <button class="ib" id="ib-cut" aria-pressed="false" aria-label="剖切至示範樓層"><svg viewBox="0 0 24 24"><path d="M4 8l8-4 8 4-8 4z"/><path d="M4 8v8l8 4 8-4V8"/><path d="M2 13h20" stroke-dasharray="2 2"/></svg><span class="tip">剖切至示範樓層</span></button>
+        <button class="ib" id="ib-tree" aria-pressed="true" aria-label="模型瀏覽器"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/></svg><span class="tip">模型瀏覽器</span></button>
+        <button class="ib" id="ib-prop" aria-label="屬性"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span class="tip">屬性</span></button>
+        <button class="ib" id="ib-find" aria-label="搜尋元件"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg><span class="tip">搜尋元件</span></button>
+      </div>
+      <div class="tree" id="tree"><div class="tree-h"><span>模型瀏覽器</span><button id="tree-x" aria-label="關閉模型瀏覽器">×</button></div><div class="tree-b" id="tree-b"></div></div>
+      <div class="tools">
+        <div class="row"><span class="cap">著色</span>
+          <div class="seg" role="group" aria-label="著色方式">
+            <button data-color="mat" aria-pressed="true">材質</button>
+            <button data-color="layer" aria-pressed="false">建築層次</button>
+            <button data-color="warr" aria-pressed="false">保固狀態</button>
+          </div>
+        </div>
+        <div class="row">
+          <button class="chip" id="t-sys" aria-pressed="true">消防電氣點位</button>
+          <button class="chip" id="t-lbl" aria-pressed="true">標籤</button>
+          <button class="chip" id="t-reset">重設視角</button>
+        </div>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="hint" id="hint">拖曳旋轉 · 滾輪縮放 · 點選構件看護照</div>
+    </section>
+
+    <aside class="panel">
+      <div class="kpis" id="kpis"></div>
+      <div class="card" id="card"></div>
+    </aside>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <form class="sheet" id="rform">
+    <h3>報修此設備</h3>
+    <div class="pp-id" id="r-id"></div>
+    <div id="r-info"></div>
+    <label for="r-desc">問題描述</label>
+    <textarea id="r-desc" rows="3" required placeholder="例：馬桶水箱持續漏水"></textarea>
+    <label for="r-who">聯絡人／電話</label>
+    <input id="r-who" placeholder="例：王先生 09xx-xxx-xxx">
+    <div class="note">示範系統：送出後只記錄在此頁面，不會真的派工。正式版將寫入一站式修繕系統，並於完工驗收時回寫本設備護照。</div>
+    <div class="card-f" style="padding:12px 0 0;border:0">
+      <button type="button" class="btn ghost" id="r-cancel">取消</button>
+      <button type="submit" class="btn primary">建立報修單</button>
+    </div>
+  </form>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+'use strict';
+/* ================= 資料 ================= */
+const LAYERS = {
+  '物品':{y:'5–15 年',c:'#4ec5c8'}, '空間配置':{y:'5–30 年',c:'#e03b3b'}, '設備系統':{y:'5–30 年',c:'#e08a2c'},
+  '外殼':{y:'30–60 年',c:'#6cbf68'}, '結構':{y:'60–200 年',c:'#2f4fd0'}, '基地':{y:'永久',c:'#3a3a3a'}
+};
+const INSTALL = '2018-12';           // 示範：以使照年估列
+const NOW = new Date();
+// 保固年限示範：依預售屋買賣定型化契約應記載事項（結構 15 年；固定建材及設備 1 年）估列
+function warrantyYears(layer){ return (layer==='結構'||layer==='基地')?15:1; }
+function warrantyEnd(it){ if(it.noWarranty) return null; const [y,m]=INSTALL.split('-').map(Number); return new Date(y+warrantyYears(it.layer), m-1, 1); }
+function warrState(it){ const e=warrantyEnd(it); if(!e) return 'none'; return e>=NOW?'ok':'warn'; }
+const WTXT={ok:'保固內',warn:'已過保',none:'無保固資料'};
+const DRY=['螺栓／扣件（乾式）','卡扣／嵌合（乾式）'];
+
+const T='待補';
+function D(o){ return Object.assign({vendor:T,model:T,omni:'待編',qty:1,unit:'件',carbon:T,cSrc:T,recycled:T,cert:T,joint:'待確認',disasm:'待確認',route:'待確認',residual:T,cycle:'依報修',focus:'—',hist:[]},o); }
+
+const UNIT_ITEMS = [
+ D({id:'BT1-WC',name:'單體馬桶',space:'浴廁1',layer:'設備系統',nen:'構造產品',unit:'座',mat:'陶瓷',mat2:'塑膠水箱配件',life:20,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'再使用',focus:'水箱配件、止水閥、底部矽利康',shape:'toilet',p:[9.6,0,6.95],hist:[{d:'2024-05-12',t:'報修',x:'水箱進水閥更換（示範紀錄）'}]}),
+ D({id:'BT1-BS',name:'面盆浴櫃',space:'浴廁1',layer:'設備系統',nen:'構造產品',unit:'組',mat:'陶瓷面盆',mat2:'防潮板材浴櫃',life:15,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'再使用',focus:'龍頭滴水、排水存水彎',shape:'basin',p:[8.85,0,5.45]}),
+ D({id:'BT1-SH',name:'淋浴玻璃隔間＋滑桿花灑',space:'浴廁1',layer:'設備系統',nen:'元件',unit:'組',mat:'強化玻璃',mat2:'不鏽鋼五金',life:20,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',focus:'鉸鍊、止水條、矽利康發霉',shape:'shower',p:[9.5,0,5.55]}),
+ D({id:'BT1-WP',name:'浴廁防水（三道防水＋RC 止水墩）',space:'浴廁1',layer:'空間配置',nen:'元件',unit:'間',mat:'紅磚隔間',mat2:'防水材三道',life:30,joint:'濕式（砂漿／混凝土）',disasm:'不可拆解',route:'最終處置',focus:'滲漏水；施工時每間試水 72 小時',shape:'wpfloor',p:[9.2,0,6.2]}),
+ D({id:'BT2-WC',name:'單體馬桶',space:'浴廁2',layer:'設備系統',nen:'構造產品',unit:'座',mat:'陶瓷',mat2:'塑膠水箱配件',life:20,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'再使用',focus:'水箱配件、止水閥',shape:'toilet',p:[0.5,0,3.25]}),
+ D({id:'BT2-BS',name:'面盆浴櫃',space:'浴廁2',layer:'設備系統',nen:'構造產品',unit:'組',mat:'陶瓷面盆',mat2:'防潮板材浴櫃',life:15,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'再使用',focus:'龍頭滴水',shape:'basin',p:[1.85,0,3.4]}),
+ D({id:'BT2-SH',name:'淋浴玻璃隔間＋滑桿花灑',space:'浴廁2',layer:'設備系統',nen:'元件',unit:'組',mat:'強化玻璃',mat2:'不鏽鋼五金',life:20,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',focus:'止水條',shape:'shower',p:[0.6,0,0.6]}),
+ D({id:'BT3-WC',name:'單體馬桶',space:'浴廁3',layer:'設備系統',nen:'構造產品',unit:'座',mat:'陶瓷',mat2:'塑膠水箱配件',life:20,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'再使用',focus:'水箱配件',shape:'toilet',p:[2.85,0,6.6]}),
+ D({id:'BT3-SH',name:'淋浴玻璃隔間＋滑桿花灑',space:'浴廁3',layer:'設備系統',nen:'元件',unit:'組',mat:'強化玻璃',mat2:'不鏽鋼五金',life:20,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',focus:'止水條',shape:'shower',p:[3.9,0,5.5]}),
+ D({id:'BT4-WC',name:'單體馬桶',space:'浴廁4',layer:'設備系統',nen:'構造產品',unit:'座',mat:'陶瓷',mat2:'塑膠水箱配件',life:20,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'再使用',focus:'水箱配件',shape:'toilet',p:[0.5,0,6.5]}),
+ D({id:'BT4-BS',name:'面盆浴櫃',space:'浴廁4',layer:'設備系統',nen:'構造產品',unit:'組',mat:'陶瓷面盆',mat2:'防潮板材浴櫃',life:15,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'再使用',focus:'龍頭滴水',shape:'basin',p:[1.9,0,6.6]}),
+ D({id:'KT-CB',name:'一字型系統廚具',space:'廚房',layer:'空間配置',nen:'元件',unit:'組',mat:'板材櫃體',mat2:'人造石／石英石檯面（待確認）',life:15,joint:'螺栓／扣件（乾式）',disasm:'可拆但會損壞',route:'材料回收',focus:'門片鉸鍊、檯面接縫',shape:'counter',p:[12.5,0,10.65]}),
+ D({id:'KT-SK',name:'不鏽鋼水槽＋鵝頸龍頭',space:'廚房',layer:'設備系統',nen:'構造產品',unit:'組',mat:'不鏽鋼',mat2:'銅合金龍頭',life:15,joint:'卡扣／嵌合（乾式）',disasm:'可無損拆卸',route:'材料回收',focus:'龍頭、排水管',shape:'sink',p:[11.2,0,10.65]}),
+ D({id:'KT-ST',name:'二口檯面爐',space:'廚房',layer:'設備系統',nen:'構造產品',unit:'台',mat:'玻璃面板',mat2:'金屬爐架',life:10,joint:'卡扣／嵌合（乾式）',disasm:'可無損拆卸',route:'材料回收',cycle:'每年',focus:'點火、瓦斯管線',shape:'stove',p:[13.2,0,10.65]}),
+ D({id:'KT-HD',name:'薄型抽油煙機',space:'廚房',layer:'設備系統',nen:'構造產品',unit:'台',mat:'不鏽鋼',mat2:'馬達、電子元件',life:10,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',cycle:'每半年',focus:'濾網清潔、馬達異音',shape:'hood',p:[13.2,0,10.75],hist:[{d:'2025-11-03',t:'保養',x:'濾網清潔（示範紀錄）'}]}),
+ D({id:'KT-OV',name:'嵌入式電器（上下疊放）',space:'廚房',layer:'物品',nen:'構造產品',unit:'台',qty:2,mat:'金屬',mat2:'電子元件',life:10,joint:'卡扣／嵌合（乾式）',disasm:'可無損拆卸',route:'材料回收',focus:'電源、門封',shape:'tall',p:[14.6,0,8.3]}),
+ D({id:'LB-WH',name:'熱水器（管線預留）',space:'生活陽台',layer:'設備系統',nen:'構造產品',unit:'台',mat:'—',mat2:'給水、熱水管線',life:10,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',cycle:'每年',focus:'交屋時未見本體；安裝後補登型號與保固',shape:'heater',p:[8.55,0,8.2]}),
+ D({id:'LB-WM',name:'洗衣機給排水',space:'生活陽台',layer:'設備系統',nen:'構造產品',unit:'組',mat:'金屬龍頭',mat2:'PVC 排水',life:15,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',focus:'龍頭、排水堵塞',shape:'tap',p:[9.3,0,10.7]}),
+ D({id:'LB-RK',name:'升降曬衣架',space:'生活陽台',layer:'物品',nen:'構造產品',unit:'組',mat:'鋁合金',mat2:'鋼索',life:10,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',focus:'鋼索、升降機構',shape:'rack',p:[9.2,0,9.2]}),
+ D({id:'LB-LT',name:'菱形格柵（生活陽台外側）',space:'生活陽台',layer:'外殼',nen:'構造產品',unit:'組',mat:'金屬格柵（材質待確認）',mat2:'表面塗裝',life:30,cycle:'每年',focus:'臨海鹽害：塗裝與固定件鏽蝕',shape:'lattice',p:[9.2,0,11.0]}),
+ D({id:'BA-PP',name:'陽台鋁沖孔欄板',space:'休閒陽台',layer:'外殼',nen:'構造產品',unit:'組',mat:'鋁合金',mat2:'表面塗裝',life:30,route:'材料回收',residual:'依鋁價 × 重量估算',cycle:'每年',focus:'臨海鹽害：塗裝剝落、固定件鏽蝕',shape:'perf',p:[14.5,0,-1.6]}),
+ D({id:'BA-DR',name:'鋁框落地推拉門',space:'休閒陽台',layer:'外殼',nen:'構造產品',unit:'樘',mat:'鋁合金',mat2:'玻璃',life:30,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',cycle:'每年',focus:'軌道、氣密條、門檻排水',shape:'slider',p:[14.5,0,0]}),
+ D({id:'WD-B2',name:'黑框鋁窗（臥室2）',space:'臥室2',layer:'外殼',nen:'構造產品',unit:'樘',mat:'鋁合金',mat2:'玻璃',life:30,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',cycle:'每年',focus:'氣密條老化、窗角防水',shape:'winx',p:[4.6,0,0],size:'1800×1600（示範）',desc:'鋁門窗材料暨廠商資格送審'}),
+ D({id:'WD-ST',name:'黑框鋁窗（書房）',space:'書房',layer:'外殼',nen:'構造產品',unit:'樘',mat:'鋁合金',mat2:'玻璃',life:30,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',cycle:'每年',focus:'氣密條老化',shape:'winx',p:[8.4,0,0]}),
+ D({id:'WD-B3',name:'黑框鋁窗（臥室3）',space:'臥室3',layer:'外殼',nen:'構造產品',unit:'樘',mat:'鋁合金',mat2:'玻璃',life:30,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',cycle:'每年',focus:'氣密條老化',shape:'winz',p:[0,0,9.2]}),
+ D({id:'WD-B1',name:'黑框鋁窗（臥室1）',space:'臥室1',layer:'外殼',nen:'構造產品',unit:'樘',mat:'鋁合金',mat2:'玻璃',life:30,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',cycle:'每年',focus:'氣密條老化',shape:'winx',p:[6.4,0,9.0]}),
+ D({id:'WD-LV',name:'黑框鋁窗（客廳）',space:'客廳',layer:'外殼',nen:'構造產品',unit:'樘',mat:'鋁合金',mat2:'玻璃',life:30,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',cycle:'每年',focus:'氣密條老化',shape:'winz',p:[18,0,2.2]}),
+ D({id:'DR-MN',name:'大門（防火門）',space:'餐廳',layer:'外殼',nen:'構造產品',unit:'樘',mat:'鋼板',mat2:'防火填充材',life:30,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',focus:'門弓器、電子鎖、防火時效標示',shape:'door',p:[16.6,0,7.4]}),
+ D({id:'DR-B1',name:'室內木門（臥室1）',space:'臥室1',layer:'空間配置',nen:'構造產品',unit:'樘',mat:'木質門扇',mat2:'深色門框',life:20,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'再使用',focus:'鉸鍊、門鎖',shape:'door',p:[5.5,0,5.0]}),
+ D({id:'FL-LV',name:'拋光石英磚地坪',space:'客廳',layer:'空間配置',nen:'構造產品',unit:'m²',qty:T,mat:'拋光石英磚',mat2:'黏著砂漿',life:30,joint:'濕式（砂漿／混凝土）',disasm:'不可拆解',route:'最終處置',focus:'膨拱、空心',shape:'floor',p:[14,0,3.7]}),
+ D({id:'AC-LV',name:'冷氣預留孔（客廳）',space:'客廳',layer:'設備系統',nen:'元件',unit:'處',mat:'預留套管',mat2:'—',life:null,noWarranty:true,focus:'交屋未安裝；安裝冷氣後新增設備護照',shape:'acport',p:[10.05,0,2.0]}),
+ D({id:'EL-PB',name:'配電盤',space:'餐廳',layer:'設備系統',nen:'元件',unit:'面',mat:'金屬箱體',mat2:'斷路器',life:25,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',focus:'跳脫、標示',shape:'panelbox',p:[17.95,0,6.4],sys:true}),
+ D({id:'EL-IC',name:'對講機',space:'餐廳',layer:'設備系統',nen:'構造產品',unit:'台',mat:'塑膠外殼',mat2:'電子元件',life:10,joint:'卡扣／嵌合（乾式）',disasm:'可無損拆卸',route:'材料回收',focus:'通話、開門功能',shape:'intercom',p:[17.95,0,5.6],sys:true}),
+ D({id:'FS-SP',name:'撒水頭（客廳，代表點位）',space:'客廳',layer:'設備系統',nen:'構造產品',unit:'個',qty:'約 15–20（全戶）',mat:'銅合金',mat2:'感熱元件',life:null,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',cycle:'依消防安全設備檢修申報',focus:'外露管線，設備層更換不需破壞天花',shape:'sprinkler',p:[14,0,2.4],sys:true}),
+ D({id:'FS-SD',name:'偵煙器（臥室2，代表點位）',space:'臥室2',layer:'設備系統',nen:'構造產品',unit:'個',qty:'約 8（全戶）',mat:'塑膠外殼',mat2:'電子元件',life:10,joint:'卡扣／嵌合（乾式）',disasm:'可無損拆卸',route:'材料回收',cycle:'依消防安全設備檢修申報',focus:'感知功能測試',shape:'smoke',p:[4.6,0,1.9],sys:true}),
+];
+UNIT_ITEMS.forEach(it=>{ it.view='unit'; it.loc='A 棟 ○F 示範戶｜'+it.space; it.pid='DM-A-'+it.id; });
+
+const BLDG_ITEMS = [
+ D({id:'SK-AL',name:'陽台鋁沖孔欄板（外觀系統）',space:'外牆',layer:'外殼',nen:'元件',unit:'式',qty:T,mat:'鋁合金',mat2:'淺灰／深灰／白色塗裝',life:30,route:'材料回收',residual:'依鋁價 × 重量估算',cycle:'每年',focus:'臨海鹽害：塗裝、固定件；高空檢查需吊籠'}),
+ D({id:'SK-FR',name:'白色框架（四角與頂冠）',space:'外牆',layer:'外殼',nen:'元件',unit:'式',qty:T,mat:'外飾板（材質待確認）',mat2:'—',life:30,cycle:'每年',focus:'清潔、接縫、固定件'}),
+ D({id:'SK-GL',name:'1F 弧形玻璃帷幕大廳',space:'1F 大廳',layer:'外殼',nen:'元件',unit:'式',qty:T,mat:'玻璃',mat2:'鋁框',life:30,joint:'螺栓／扣件（乾式）',disasm:'可無損拆卸',route:'材料回收',cycle:'每年',focus:'結構矽利康、排水'}),
+ D({id:'ST-SS',name:'耐震合金鋼板組立鋼骨（B1F–5F）',space:'結構體',layer:'結構',nen:'元件',unit:'t',qty:T,mat:'耐震合金鋼',mat2:'HFC 高性能混凝土（SRC）',life:null,joint:'焊接',disasm:'不可拆解',route:'材料回收',cycle:'依法定檢查',focus:'受力最大樓層；隱含碳最大宗'}),
+ D({id:'ST-HFC',name:'高性能混凝土 HFC',space:'結構體',layer:'結構',nen:'材料／原料',unit:'m³',qty:T,mat:'高性能混凝土',mat2:'—',life:null,joint:'濕式（砂漿／混凝土）',disasm:'不可拆解',route:'材料回收',focus:'隱含碳主要來源之一'}),
+ D({id:'SI-EX',name:'地下室開挖（深 20m，移除液化土層）',space:'基地',layer:'基地',nen:'結構物',unit:'式',mat:'—',mat2:'—',life:null,noWarranty:true,focus:'地質與改良紀錄永久保存'}),
+ D({id:'SI-DW',name:'連續壁（長 39m）',space:'基地',layer:'基地',nen:'元件',unit:'式',qty:T,mat:'鋼筋混凝土',mat2:'—',life:null,joint:'濕式（砂漿／混凝土）',disasm:'不可拆解',route:'最終處置',focus:'貫入堅實地層，防止土壤液化'}),
+];
+BLDG_ITEMS.forEach(it=>{ it.view='bldg'; it.loc='示範建案｜'+it.space; it.pid='DM-B-'+it.id; });
+const PARTS = {toilet:['陶瓷本體','水箱配件','止水閥'],basin:['陶瓷面盆','浴櫃板材','龍頭'],shower:['10mm 強化玻璃門','不鏽鋼鉸鍊','滑桿花灑'],
+  winx:['5mm 強化玻璃','鋁窗框','氣密條'],winz:['5mm 強化玻璃','鋁窗框','氣密條'],slider:['強化玻璃','鋁框','軌道'],perf:['鋁沖孔板','固定扣件','表面塗裝'],
+  lattice:['格柵','固定件'],counter:['櫃體板材','檯面','五金鉸鍊'],hood:['不鏽鋼外殼','馬達','濾網'],door:['門扇','門框','五金']};
+const ALL_PARTS = it => it.parts || PARTS[it.shape] || [it.mat, it.mat2].filter(v=>v && v!=='—');
+const ALL = [...UNIT_ITEMS, ...BLDG_ITEMS];
+const BYID = Object.fromEntries(ALL.map(i=>[i.id,i]));
+
+const ROOMS = [
+ ['浴廁2',0,2.4,0,3.8,'wet'], ['臥室2',2.4,6.8,0,3.8,'dry'], ['書房',6.8,10,0,3.8,'dry'],
+ ['客廳',10,18,0,4.2,'dry',['s']], ['餐廳',10,18,4.2,7.4,'dry',['n','w']], ['走廊',2.4,10,3.8,5.0,'hall',['e']],
+ ['浴廁4',0,2.4,3.8,7.0,'wet'], ['浴廁3',2.4,4.4,5.0,7.0,'wet'], ['臥室1',4.4,8.4,5.0,9.0,'dry'],
+ ['浴廁1',8.4,10,5.0,7.4,'wet'], ['臥室3',0,4.4,7.0,11.4,'dry'], ['生活陽台',8.4,10,7.4,11.0,'balc'],
+ ['廚房',10,15,7.4,11.0,'dry'], ['休閒陽台',12,17,-1.6,0,'balc']
+];
+const OX=-9, OZ=-4.9;
+
+/* ================= 狀態 ================= */
+const S = { view:'bldg', color:'mat', sys:true, lbl:true, sel:null, tab:'base', q:'', hover:null };
+
+/* ================= 主題 ================= */
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function isDark(){ const t=document.documentElement.getAttribute('data-theme'); if(t) return t==='dark'; return matchMedia('(prefers-color-scheme: dark)').matches; }
+
+/* ================= Three.js ================= */
+const canvas = document.getElementById('cv');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 2000);
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = .08;
+const hemi = new THREE.HemisphereLight(0xffffff, 0x8899aa, .75); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, .75); sun.position.set(40,80,30); scene.add(sun);
+const fill = new THREE.DirectionalLight(0xffffff, .25); fill.position.set(-40,30,-30); scene.add(fill);
+
+const unitG = new THREE.Group(), bldgG = new THREE.Group();
+scene.add(unitG); scene.add(bldgG);
+const pickables = []; // meshes with userData.id or action
+const colorables = []; // {mesh, id, base}
+const sysMeshes = [];
+const labels = []; // {el, pos:Vector3, group}
+
+const M = (c,o={}) => new THREE.MeshStandardMaterial(Object.assign({color:c, roughness:.75, metalness:.05}, o));
+function box(w,h,d,mat,x,y,z,g){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,y,z); (g||unitG).add(m); return m; }
+function reg(mesh,id,base){ mesh.userData.id=id; pickables.push(mesh); colorables.push({mesh,id,base:base||mesh.material.color.getHex()}); }
+function addLabel(text, pos, group, cls){ const el=document.createElement('div'); el.className='lbl'+(cls?' '+cls:''); el.textContent=text; document.getElementById('labels').appendChild(el); const L={el,pos,group}; labels.push(L); return L; }
+
+function texDots(bg, fg, n){ const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'); x.fillStyle=bg; x.fillRect(0,0,128,128); x.fillStyle=fg; const s=128/n; for(let i=0;i<n;i++)for(let j=0;j<n;j++){x.beginPath(); x.arc(i*s+s/2,j*s+s/2,s*.28,0,7); x.fill();} const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
+function texLattice(bg, fg){ const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'); x.fillStyle=bg; x.fillRect(0,0,128,128); x.strokeStyle=fg; x.lineWidth=7; for(let k=-128;k<256;k+=32){x.beginPath();x.moveTo(k,0);x.lineTo(k+128,128);x.stroke();x.beginPath();x.moveTo(k+128,0);x.lineTo(k,128);x.stroke();} const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
+
+/* ---------- 住戶模型 ---------- */
+const WALL_H = 1.15, WT=.12;
+const floorCol = {dry:0xe9e6df, wet:0xdcdfe3, hall:0xe4e1da, balc:0x6b7380};
+const wallMat = M(0xf7f6f2);
+const roomFloors = [];
+ROOMS.forEach(([n,x0,x1,z0,z1,type,open])=>{
+  open=open||[];
+  const w=x1-x0, d=z1-z0, cx=OX+(x0+x1)/2, cz=OZ+(z0+z1)/2;
+  const f=box(w-.02,.06,d-.02,M(floorCol[type]),cx,-.03,cz);
+  f.userData.room=n; pickables.push(f); roomFloors.push(f);
+  if(n==='客廳'){ reg(f,'FL-LV'); f.userData.room=n; }
+  const h = type==='balc'? .25 : WALL_H;
+  const ins=WT/2;
+  if(!open.includes('n')) box(w,h,WT,wallMat,cx,h/2,OZ+z0+ins);
+  if(!open.includes('s')) box(w,h,WT,wallMat,cx,h/2,OZ+z1-ins);
+  if(!open.includes('w')) box(WT,h,d,wallMat,OX+x0+ins,h/2,cz);
+  if(!open.includes('e')) box(WT,h,d,wallMat,OX+x1-ins,h/2,cz);
+  addLabel(n, new THREE.Vector3(cx, .2, cz), 'unit');
+});
+// unit slab edge
+box(19.2,.25,13.6,M(0xb9c0cb),OX+9,-.2,OZ+4.9);
+
+const white=0xf4f4f2, steel=0xb8bec7, glass=0x9fc3dc, dark=0x3b414c;
+function build(it){
+  const [px,,pz]=it.p, x=OX+px, z=OZ+pz; let g=new THREE.Group(); g.position.set(x,0,z); unitG.add(g);
+  const add=(w,h,d,c,ox,oy,oz,o)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),M(c,o)); m.position.set(ox,oy,oz); g.add(m); reg(m,it.id); return m; };
+  switch(it.shape){
+    case 'toilet': add(.4,.42,.55,white,0,.21,0); add(.42,.35,.18,white,0,.55,.2); break;
+    case 'basin': add(.8,.75,.45,0x8b6a4e,0,.375,0); add(.6,.06,.4,white,0,.78,0); break;
+    case 'shower': { const m=add(.95,1.6,.95,glass,0,.8,0,{transparent:true,opacity:.35,metalness:.2}); add(.04,1.2,.04,steel,.4,.9,.4); break; }
+    case 'wpfloor': { const m=add(1.4,.02,2.2,0x5aa0d8,0,.005,0,{transparent:true,opacity:.45}); break; }
+    case 'counter': add(4.4,.85,.6,0x9aa0a8,0,.425,0); add(4.4,.04,.62,0xf2f2f0,0,.87,0); add(4.4,.5,.35,0xb7bcc4,0,1.6,.12); break;
+    case 'sink': add(.75,.06,.45,steel,0,.9,0,{metalness:.6,roughness:.3}); add(.04,.35,.04,steel,0,1.08,.18,{metalness:.6}); break;
+    case 'stove': add(.7,.03,.45,0x1e2128,0,.9,0,{roughness:.2}); break;
+    case 'hood': add(.75,.25,.45,steel,0,1.45,.05,{metalness:.6,roughness:.35}); break;
+    case 'tall': add(.6,1.9,.6,0xc3c7ce,0,.95,0); add(.5,.4,.02,0x22262d,0,1.45,-.31); add(.5,.35,.02,0x22262d,0,.95,-.31); break;
+    case 'heater': add(.4,.6,.25,0xdfe2e6,0,1.0,0); add(.04,.8,.04,0xc6865a,.1,.4,0); add(.04,.8,.04,0xc6865a,-.1,.4,0); break;
+    case 'tap': add(.12,.12,.08,steel,0,.9,0); add(.5,.03,.5,0xd8dbe0,0,.02,-.25); break;
+    case 'rack': add(1.4,.04,.04,steel,0,1.75,-.2); add(1.4,.04,.04,steel,0,1.75,.2); break;
+    case 'lattice': { const t=texLattice('#2c3138','#f2f2f0'); t.repeat.set(3,2); const m=add(1.6,1.1,.05,0xffffff,0,.55,0,{map:t}); break; }
+    case 'perf': { const t=texDots('#3b414c','#8f97a3',8); t.repeat.set(10,2); add(5,1.1,.06,0xffffff,0,.55,0,{map:t,metalness:.3}); add(1.2,1.1,.07,0xe6e6e3,-1.4,.55,.01); add(1.2,1.1,.07,0xe6e6e3,1.2,.55,.01); break; }
+    case 'slider': add(3,1.15,.06,glass,0,.575,0,{transparent:true,opacity:.45}); add(3,.06,.08,0x1f2328,0,1.15,0); add(.06,1.15,.08,0x1f2328,0,.575,0); break;
+    case 'winx': add(1.6,.55,.08,glass,0,.85,0,{transparent:true,opacity:.6}); add(1.6,.05,.1,0x1f2328,0,1.12,0); add(1.6,.05,.1,0x1f2328,0,.58,0); break;
+    case 'winz': add(.08,.55,1.6,glass,0,.85,0,{transparent:true,opacity:.6}); add(.1,.05,1.6,0x1f2328,0,1.12,0); add(.1,.05,1.6,0x1f2328,0,.58,0); break;
+    case 'door': add(.95,1.15,.08,it.id==='DR-MN'?0x4b5563:0x7a4a2c,0,.575,0); break;
+    case 'floor': break;
+    case 'acport': { const m=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.06,20),M(0x9aa1ab)); m.rotation.z=Math.PI/2; m.position.set(0,.95,0); g.add(m); reg(m,it.id); break; }
+    case 'panelbox': add(.06,.6,.45,0xd0d4da,0,.8,0); break;
+    case 'intercom': add(.06,.25,.15,0xf0f0f0,0,.95,0); break;
+    case 'sprinkler': { const m=new THREE.Mesh(new THREE.SphereGeometry(.13,16,12),M(0xd23b3b,{emissive:0x400000})); m.position.set(0,2.0,0); g.add(m); reg(m,it.id); const p=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.8,8),M(0xf2f2f2)); p.position.set(0,2.4,0); g.add(p); break; }
+    case 'smoke': { const m=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.06,20),M(0xf5f5f5,{emissive:0x202020})); m.position.set(0,2.0,0); g.add(m); reg(m,it.id); break; }
+  }
+  if(it.sys){ g.userData.sys=true; sysMeshes.push(g); }
+}
+UNIT_ITEMS.forEach(build);
+// exposed sprinkler pipe run (visual only)
+const pipe=box(14,.05,.05,M(0xf2f2f2),OX+9,2.4,OZ+2.4); sysMeshes.push(pipe);
+
+/* ---------- 整棟模型 ---------- */
+const FLOORS=29, FH=3.2, TW=26, TD=16;
+function tower(cx, name, isA){
+  const H=FLOORS*FH;
+  const core=box(TW-2,H,TD-2,M(0x2a2f37,{roughness:.5,metalness:.2}),cx,H/2,0,bldgG); reg(core,'SK-AL');
+  const tA=texDots('#3b414c','#7f8894',6); tA.repeat.set(12,1);
+  const bandMat=M(0xffffff,{map:tA,metalness:.3,roughness:.55});
+  for(let f=1; f<FLOORS; f++){
+    const y=f*FH+.55;
+    [[TW,TD/2+.4,0],[TW,-(TD/2+.4),0]].forEach(([w,z])=>{ const b=box(w,1.1,.25,bandMat,cx,y,z,bldgG); reg(b,'SK-AL',0xffffff); });
+    [[TW/2+.4],[-(TW/2+.4)]].forEach(([x])=>{ const b=box(.25,1.1,TD,bandMat,cx+x,y,0,bldgG); reg(b,'SK-AL',0xffffff); });
+    // V 形白色三角圖案（示意）
+    const k=(f%8); const off=(k<4?k:8-k)*2.2;
+    [-1,1].forEach(s=>{ const w=box(2.2,1.12,.27,M(0xeeeeec),cx+s*(1.5+off),y,TD/2+.42,bldgG); reg(w,'SK-AL',0xeeeeec); });
+  }
+  // 白色框架
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz])=>{ const c=box(1.6,H+3,1.6,M(0xf3f3f1),cx+sx*(TW/2+.2),(H+3)/2,sz*(TD/2+.2),bldgG); reg(c,'SK-FR',0xf3f3f1); });
+  [[TW+2,0,TD/2+.2],[TW+2,0,-(TD/2+.2)]].forEach(([w,,z])=>{ const c=box(w,1.4,1.2,M(0xf3f3f1),cx,H+2.3,z,bldgG); reg(c,'SK-FR',0xf3f3f1); });
+  // 結構 B1F–5F 鋼骨（半透明示意）
+  const st=box(TW-1.5,6*FH,TD-1.5,M(0x2f4fd0,{transparent:true,opacity:.35}),cx,(5*FH-FH)/2,0,bldgG); reg(st,'ST-SS',0x2f4fd0);
+  addLabel(name, new THREE.Vector3(cx,H+8,0), 'bldg');
+  return H;
+}
+const H = tower(-17,'A 棟',true); tower(17,'B 棟',false);
+// 示範戶樓層
+const demoF=12, ring=box(TW+1.6,1.3,TD+1.6,M(0xf08a24,{transparent:true,opacity:.75,emissive:0x5a2a00}),-17,demoF*FH+.55,0,bldgG);
+ring.userData.action='enterUnit'; pickables.push(ring);
+const demoLbl=addLabel('示範戶 A 棟 ○F → 進入', new THREE.Vector3(-17-TW/2-6,demoF*FH+.6,TD/2), 'bldg', 'hot');
+demoLbl.el.addEventListener('click',()=>setView('unit'));
+const cutPlane = new THREE.Plane(new THREE.Vector3(0,-1,0), demoF*FH+1.4);
+renderer.localClippingEnabled = true;
+function setCut(on){ S.cut=on; bldgG.traverse(o=>{ if(o.isMesh && o!==ground){ if(o.userData._side===undefined) o.userData._side=o.material.side; o.material.clippingPlanes = on?[cutPlane]:[]; o.material.side = on?THREE.DoubleSide:o.userData._side; o.material.needsUpdate=true; } }); document.getElementById('ib-cut').setAttribute('aria-pressed',on); }
+addLabel('B1F–5F 耐震鋼骨', new THREE.Vector3(-17,7,TD/2+3),'bldg','sys');
+// 1F 玻璃大廳
+const lobby=new THREE.Mesh(new THREE.CylinderGeometry(9,9,5,40,1,true,-Math.PI/2,Math.PI),M(0x9fc3dc,{transparent:true,opacity:.55,side:THREE.DoubleSide,metalness:.3,roughness:.2}));
+lobby.position.set(0,2.5,TD/2-2); bldgG.add(lobby); reg(lobby,'SK-GL',0x9fc3dc);
+const lobRoof=new THREE.Mesh(new THREE.CylinderGeometry(9.2,9.2,.4,40,1,false,-Math.PI/2,Math.PI),M(0xe8e8e6)); lobRoof.position.set(0,5.2,TD/2-2); bldgG.add(lobRoof); reg(lobRoof,'SK-GL',0xe8e8e6);
+addLabel('1F 玻璃帷幕', new THREE.Vector3(0,7,TD/2+8),'bldg');
+// 地面與地下
+const ground=new THREE.Mesh(new THREE.BoxGeometry(110,.4,70),M(0xc9cfd6,{transparent:true,opacity:.55})); ground.position.set(0,-.2,0); bldgG.add(ground);
+const ex=box(66,20,22,M(0x8d7a64,{transparent:true,opacity:.18}),0,-10.2,0,bldgG); reg(ex,'SI-EX',0x8d7a64);
+const dwMat=M(0x6b5a48,{transparent:true,opacity:.45});
+[[66,.6,0,11.3],[66,.6,0,-11.3]].forEach(([w,d,x,z])=>{ const m=box(w,39,d,dwMat,x,-19.7,z,bldgG); reg(m,'SI-DW',0x6b5a48); });
+[[-33.3],[33.3]].forEach(([x])=>{ const m=box(.6,39,22.6,dwMat,x,-19.7,0,bldgG); reg(m,'SI-DW',0x6b5a48); });
+addLabel('地下室開挖 20m', new THREE.Vector3(0,-10,12),'bldg');
+addLabel('連續壁 39m', new THREE.Vector3(33.5,-30,11.5),'bldg');
+
+/* ================= 視角 ================= */
+const CAM = {
+  unit:{pos:[9,22,21], target:[0,0,0.5], min:6, max:60},
+  bldg:{pos:[-115,70,150], target:[0,28,0], min:30, max:320}
+};
+function resetCam(){ const c=CAM[S.view]; camera.position.set(...c.pos); controls.target.set(...c.target); controls.minDistance=c.min; controls.maxDistance=c.max; controls.update(); }
+
+/* ================= 著色 ================= */
+const WCOL={ok:0x2e9d6b,warn:0xe0892c,none:0x9aa3b2};
+function applyColors(){
+  colorables.forEach(({mesh,id,base})=>{
+    const it=BYID[id]; let c=base;
+    if(S.color==='layer') c=new THREE.Color(LAYERS[it.layer].c).getHex();
+    else if(S.color==='warr') c=WCOL[warrState(it)];
+    mesh.material.color.setHex(c);
+    if(mesh.material.map) mesh.material.map.needsUpdate=false;
+    const on = S.sel===id;
+    mesh.material.emissive && mesh.material.emissive.setHex(on?0x1f4fbf:(S.hover===id?0x2a2a2a:0x000000));
+  });
+  // texture maps tint with color — remove map when not material mode
+  colorables.forEach(({mesh})=>{ if(mesh.userData._map===undefined) mesh.userData._map=mesh.material.map||null; mesh.material.map = S.color==='mat'? mesh.userData._map : null; mesh.material.needsUpdate=true; });
+  renderLegend();
+}
+function renderLegend(){
+  const el=document.getElementById('legend'); let h='';
+  if(S.color==='layer'){ const used=new Set(ALL.filter(i=>i.view===S.view).map(i=>i.layer)); h=Object.entries(LAYERS).filter(([k])=>used.has(k)).map(([k,v])=>`<span><i class="dot" style="background:${v.c}"></i>${k} ${v.y}</span>`).join(''); }
+  else if(S.color==='warr'){ h=['ok','warn','none'].map(k=>`<span><i class="dot" style="background:#${WCOL[k].toString(16)}"></i>${WTXT[k]}</span>`).join('')+'<span style="color:var(--muted)">保固以「結構 15 年、設備 1 年」示範估列</span>'; }
+  else { h='<span><i class="dot" style="background:#2563c9"></i>已選取</span><span style="color:var(--muted)">點選構件或右側清單查看建材護照</span>'; }
+  el.innerHTML=h;
+}
+
+/* ================= 面板 ================= */
+const esc=s=>String(s==null?'—':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const V=v=> (v===T||v==='待確認'||v==='待編') ? `<span class="tbd">${esc(v)}</span>` : esc(v);
+function items(){ return ALL.filter(i=>i.view===S.view); }
+function renderKPIs(){
+  const L=items(), n=L.length;
+  const cfill=L.filter(i=>i.carbon!==T).length;
+  const dry=L.filter(i=>DRY.includes(i.joint)).length;
+  const ok=L.filter(i=>warrState(i)==='ok').length, warn=L.filter(i=>warrState(i)==='warn').length;
+  document.getElementById('kpis').innerHTML=`
+   <div class="kpi c"><div class="k">減碳</div><div class="v">${cfill}/${n}</div><div class="s">碳足跡已建檔</div></div>
+   <div class="kpi r"><div class="k">循環</div><div class="v">${dry}/${n}</div><div class="s">乾式可拆接合</div></div>
+   <div class="kpi m"><div class="k">維護</div><div class="v">${n}</div><div class="s">已建檔｜保固內 ${ok}・過保 ${warn}</div></div>`;
+}
+function renderCard(){
+  const card=document.getElementById('card');
+  if(!S.sel){ renderList(card); return; }
+  const it=BYID[S.sel], ly=LAYERS[it.layer], ws=warrState(it), we=warrantyEnd(it);
+  const tabs=[['base','屬性'],['carbon','減碳'],['circ','循環'],['maint','維護']];
+  let body='';
+  if(S.tab==='base'){ const life=it.life?String(it.life):T; const wy=it.noWarranty?'—':warrantyYears(it.layer)+'（示範估列）';
+    body=`<div class="sec-h" style="margin-top:0">圖資欄位（比照桃園社宅圖資系統）</div><dl class="kv">
+    <dt>名稱</dt><dd>${esc(it.name)}</dd><dt>空間</dt><dd>${esc(it.loc)}</dd>
+    <dt>類別</dt><dd>${V(it.omni)}</dd><dt>說明</dt><dd>${V(it.desc||T)}</dd>
+    <dt>製造廠商</dt><dd>${V(it.vendor)}</dd><dt>型號</dt><dd>${V(it.model)}</dd>
+    <dt>預期壽命</dt><dd>${V(life)}${it.life?' 年':''}</dd><dt>標稱尺寸</dt><dd>${V(it.size||T)}</dd>
+    <dt>更換成本</dt><dd>${V(T)}</dd><dt>保固說明</dt><dd>${it.noWarranty?'—':'不當造成故障不負保固責任'}</dd>
+    <dt>零件保固期</dt><dd>${wy}</dd><dt>保固廠商</dt><dd>${V(T)}</dd>
+    <dt>安裝日期</dt><dd>${INSTALL}（示範：以使照年估列）</dd></dl>
+    <div class="sec-h">建材護照擴充</div><dl class="kv">
+    <dt>護照編號</dt><dd class="pp-id">${esc(it.pid)}</dd><dt>建築層次</dt><dd>${esc(it.layer)}（${ly.y}）</dd>
+    <dt>構件層級</dt><dd>${esc(it.nen)}</dd><dt>數量</dt><dd>${V(it.qty)} ${it.qty===T?'':esc(it.unit)}</dd></dl>
+    <div class="sec-h">材料組成</div><div>${ALL_PARTS(it).map(p=>`<span class="tag" style="margin:0 6px 6px 0;display:inline-block">${esc(p)}</span>`).join('')}</div>
+    ${it.src?`<div class="note">資料來源：${esc(it.src)}</div>`:''}`; }
+  if(S.tab==='carbon') body=`<dl class="kv"><dt>單位碳足跡</dt><dd>${V(it.carbon)}（kgCO₂e／${esc(it.unit)}）</dd><dt>資料來源</dt><dd>${V(it.cSrc)}</dd>
+    <dt>再生料含量</dt><dd>${V(it.recycled)}</dd><dt>隱含碳小計</dt><dd><span class="tbd">數量 × 單位碳足跡（待資料）</span></dd><dt>證書／標章</dt><dd>${V(it.cert)}</dd></dl>
+    <div class="note">碳足跡優先採產品碳足跡標籤或 EPD，其次採資料庫係數；資料由材料層往上繼承，自動累計到戶與整棟。</div>`;
+  if(S.tab==='circ') body=`<dl class="kv"><dt>接合方式</dt><dd>${V(it.joint)}</dd><dt>可拆解性</dt><dd>${V(it.disasm)}</dd>
+    <dt>回收途徑</dt><dd>${V(it.route)}</dd><dt>殘值估算</dt><dd>${V(it.residual)}</dd></dl>
+    <div class="note">${DRY.includes(it.joint)?'乾式接合，未來可整件拆下再使用或回收。':(it.joint==='待確認'?'接合方式需以竣工圖或現勘確認，會直接影響可拆解評分。':'濕式或焊接，拆除時難以完整回收，屬耐久與可變性的取捨。')}</div>`;
+  if(S.tab==='maint'){
+    const route = ws==='ok' ? `<div class="route ok"><b>保固內</b>（至 ${we.getFullYear()}/${String(we.getMonth()+1).padStart(2,'0')}）→ 報修時直接派保固責任廠商</div>`
+      : ws==='warn' ? `<div class="route warn"><b>已過保</b>（${we.getFullYear()}/${String(we.getMonth()+1).padStart(2,'0')} 到期）→ 報修時走現勘與報價流程</div>`
+      : `<div class="route none"><b>無保固資料</b> → 由客服確認後派工</div>`;
+    const life = it.life? `${it.life} 年｜預計 ${2018+it.life} 年評估更換` : '—';
+    body=`${route}<dl class="kv" style="margin-top:10px"><dt>預期壽命</dt><dd>${life}</dd><dt>維護週期</dt><dd>${esc(it.cycle)}</dd><dt>維護重點</dt><dd>${esc(it.focus)}</dd></dl>
+     <div class="sec-h">維修履歷</div>${it.hist.length?`<ul class="hist">${[...it.hist].reverse().map(h=>`<li><div class="d">${esc(h.d)}｜${esc(h.t)}${h.no?'｜'+esc(h.no):''}</div>${esc(h.x)}</li>`).join('')}</ul>`:'<div class="note">尚無紀錄。報修完工驗收後會自動回寫到這裡。</div>'}`;
+  }
+  card.innerHTML=`<div class="card-h"><button class="back" id="bk">← 設備清單</button>
+     <h2 class="pp-title">${esc(it.name)}</h2><div class="pp-id">${esc(it.pid)}</div>
+     <div class="tags"><span class="tag" style="border-color:${ly.c}">${esc(it.layer)}｜${ly.y}</span><span class="tag">${esc(it.space)}</span><span class="pill ${ws}">${WTXT[ws]}</span></div>
+     <div class="tabs" role="tablist">${tabs.map(([k,t])=>`<button role="tab" data-t="${k}" aria-selected="${S.tab===k}">${t}</button>`).join('')}</div></div>
+   <div class="card-b">${body}</div>
+   <div class="card-f"><button class="btn primary" id="rep">報修此設備</button></div>`;
+  card.querySelector('#bk').onclick=()=>select(null);
+  card.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t; renderCard();});
+  card.querySelector('#rep').onclick=()=>openRepair(it);
+}
+function renderList(card){
+  const L=items().filter(i=>!S.q || (i.name+i.space+i.layer).includes(S.q));
+  const groups={}; L.forEach(i=>{(groups[i.space]=groups[i.space]||[]).push(i);});
+  const intro = S.view==='unit' ? '四房戶型（示範戶）｜戶 → 空間 → 設備' : '整棟｜結構、外殼、基地';
+  card.innerHTML=`<div class="card-h"><h2 class="pp-title" style="font-size:17px">建材護照清單</h2><div class="pp-id" style="font-family:var(--f-body)">${intro}</div>
+     <input class="search" id="q" placeholder="搜尋設備、空間或層次" value="${esc(S.q==null?'':S.q).replace('—','')}" style="margin-top:10px"></div>
+   <div class="card-b">${Object.entries(groups).map(([sp,arr])=>`<div class="grp"><span>${esc(sp)}</span><span>${arr.length} 項</span></div>`+arr.map(i=>`<button class="item" data-id="${i.id}"><i class="dot" style="background:${LAYERS[i.layer].c}"></i><span class="n">${esc(i.name)}</span><span class="pill ${warrState(i)}">${WTXT[warrState(i)]}</span></button>`).join('')).join('') || '<div class="note">找不到符合的設備。</div>'}
+   ${S.view==='bldg'?'<div class="note">點選 A 棟橘色樓層，或上方「示範戶」按鈕，進入住戶層級。</div>':''}</div>`;
+  const q=card.querySelector('#q'); q.oninput=()=>{ S.q=q.value.trim(); const pos=q.selectionStart; renderList(card); const nq=document.getElementById('q'); nq.focus(); nq.setSelectionRange(pos,pos); };
+  card.querySelectorAll('.item').forEach(b=>b.onclick=()=>select(b.dataset.id,true));
+}
+function renderTree(){
+  const el=document.getElementById('tree-b'); const L=items();
+  const by={}; L.forEach(i=>{(by[i.space]=by[i.space]||[]).push(i);});
+  const root = S.view==='unit' ? '示範建案 › A 棟 › ○F 示範戶' : '示範建案（整棟）';
+  el.innerHTML=`<details open><summary>${esc(root)}</summary>${Object.entries(by).map(([sp,arr])=>`<details ${arr.some(i=>i.id===S.sel)?'open':''}><summary>${esc(sp)} <span style="color:var(--muted);font-size:11px">${arr.length}</span></summary>${arr.map(i=>`<button class="tleaf ${S.sel===i.id?'on':''}" data-id="${i.id}"><i class="dot" style="background:${LAYERS[i.layer].c}"></i>${esc(i.name)}</button>${S.sel===i.id?ALL_PARTS(i).map(p=>`<div class="tmat">└ ${esc(p)}</div>`).join(''):''}`).join('')}</details>`).join('')}</details>`;
+  el.querySelectorAll('.tleaf').forEach(b=>b.onclick=()=>select(b.dataset.id,true));
+}
+function select(id, fly){
+  S.sel=id; if(id && S.tab==='base' && false) S.tab='base';
+  applyColors(); renderCard(); renderTree();
+  if(id && fly && S.view==='unit'){ const it=BYID[id]; const t=new THREE.Vector3(OX+it.p[0],.5,OZ+it.p[2]); flyTo(t, 20); }
+}
+function flyTo(target, dist){
+  const dir=camera.position.clone().sub(controls.target).normalize();
+  const endT=target.clone(), endP=target.clone().add(dir.multiplyScalar(dist));
+  const sT=controls.target.clone(), sP=camera.position.clone(); const t0=performance.now(), dur=matchMedia('(prefers-reduced-motion: reduce)').matches?1:600;
+  (function step(){ const k=Math.min(1,(performance.now()-t0)/dur), e=1-Math.pow(1-k,3); controls.target.lerpVectors(sT,endT,e); camera.position.lerpVectors(sP,endP,e); if(k<1) requestAnimationFrame(step); })();
+}
+
+/* ================= 報修 ================= */
+const modal=document.getElementById('modal'); let repIt=null; let seq=12;
+function openRepair(it){
+  repIt=it; const ws=warrState(it);
+  document.getElementById('r-id').textContent=it.pid+'｜'+it.loc;
+  document.getElementById('r-info').innerHTML=`<div class="route ${ws}"><b>${esc(it.name)}</b><br>型號：${V(it.model)}　廠商：${V(it.vendor)}<br>派工建議：${ws==='ok'?'保固內，直接派保固責任廠商':ws==='warn'?'已過保，安排現勘與報價':'無保固資料，客服確認後派工'}</div>`;
+  document.getElementById('r-desc').value=''; modal.hidden=false; setTimeout(()=>document.getElementById('r-desc').focus(),0);
+}
+document.getElementById('r-cancel').onclick=()=>{modal.hidden=true;};
+modal.addEventListener('click',e=>{ if(e.target===modal) modal.hidden=true; });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') modal.hidden=true; });
+document.getElementById('rform').addEventListener('submit',e=>{
+  e.preventDefault(); const d=new Date(); const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const no=`R${d.getFullYear()-1911}-${String(++seq).padStart(4,'0')}`;
+  repIt.hist.push({d:ds,t:'報修',no,x:document.getElementById('r-desc').value+'（示範：已立案，待派工）'});
+  modal.hidden=true; S.tab='maint'; renderCard(); toast(`已建立示範報修單 ${no}，並記入此設備的維修履歷`);
+});
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,3200); }
+
+/* ================= 互動 ================= */
+const ray=new THREE.Raycaster(), mv=new THREE.Vector2(); let down=null;
+function pick(ev){
+  const r=canvas.getBoundingClientRect(); mv.x=((ev.clientX-r.left)/r.width)*2-1; mv.y=-((ev.clientY-r.top)/r.height)*2+1;
+  ray.setFromCamera(mv,camera);
+  const list=pickables.filter(m=>{ let o=m; while(o){ if(!o.visible) return false; o=o.parent; } return true; });
+  const hit=ray.intersectObjects(list,false)[0]; return hit?hit.object:null;
+}
+canvas.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY};});
+canvas.addEventListener('pointerup',e=>{
+  if(!down) return; const moved=Math.hypot(e.clientX-down.x,e.clientY-down.y); down=null; if(moved>5) return;
+  const o=pick(e); if(!o){ return; }
+  if(o.userData.action==='enterUnit'){ setView('unit'); return; }
+  if(o.userData.id){ S.tab=S.sel===o.userData.id?S.tab:'base'; select(o.userData.id,false); return; }
+  if(o.userData.room){ S.sel=null; S.q=o.userData.room; applyColors(); renderCard(); }
+});
+canvas.addEventListener('pointermove',e=>{
+  if(down) return; const o=pick(e); const id=o&&o.userData.id||null;
+  canvas.style.cursor = o&&(o.userData.id||o.userData.action||o.userData.room)?'pointer':'grab';
+  if(id!==S.hover){ S.hover=id; applyColors(); }
+});
+
+function setView(v){
+  S.view=v; S.sel=null; S.q=''; S.tab='base';
+  unitG.visible = v==='unit'; bldgG.visible = v==='bldg';
+  document.getElementById('v-unit').setAttribute('aria-pressed', v==='unit');
+  document.getElementById('v-bldg').setAttribute('aria-pressed', v==='bldg');
+  document.getElementById('crumb').innerHTML = v==='unit' ? '示範建案 › A 棟 ○F › <b>四房示範戶</b>' : '<b>示範建案</b>（A、B 棟示意）';
+  document.getElementById('t-sys').hidden = v!=='unit';
+  setCut(false); document.getElementById('ib-cut').disabled = v!=='bldg';
+  resetCam(); applyColors(); renderKPIs(); renderCard(); renderTree();
+}
+document.getElementById('v-unit').onclick=()=>setView('unit');
+document.getElementById('v-bldg').onclick=()=>setView('bldg');
+document.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{ S.color=b.dataset.color; document.querySelectorAll('[data-color]').forEach(x=>x.setAttribute('aria-pressed',x===b)); applyColors(); });
+document.getElementById('t-sys').onclick=e=>{ S.sys=!S.sys; e.currentTarget.setAttribute('aria-pressed',S.sys); sysMeshes.forEach(m=>m.visible=S.sys); };
+document.getElementById('t-lbl').onclick=e=>{ S.lbl=!S.lbl; e.currentTarget.setAttribute('aria-pressed',S.lbl); };
+document.getElementById('t-reset').onclick=resetCam;
+document.getElementById('ib-fit').onclick=resetCam;
+function setNav(pan){ controls.mouseButtons.LEFT = pan?THREE.MOUSE.PAN:THREE.MOUSE.ROTATE; document.getElementById('ib-pan').setAttribute('aria-pressed',pan); document.getElementById('ib-orbit').setAttribute('aria-pressed',!pan); document.getElementById('hint').textContent = (pan?'拖曳平移':'拖曳旋轉')+' · 滾輪縮放 · 點選構件看護照'; }
+document.getElementById('ib-orbit').onclick=()=>setNav(false);
+document.getElementById('ib-pan').onclick=()=>setNav(true);
+document.getElementById('ib-cut').onclick=()=>{ setCut(!S.cut); if(S.cut){ flyTo(new THREE.Vector3(-17,demoF*FH,0), 110); } };
+function setTree(on){ document.getElementById('tree').hidden=!on; document.getElementById('ib-tree').setAttribute('aria-pressed',on); }
+document.getElementById('ib-tree').onclick=()=>setTree(document.getElementById('tree').hidden);
+document.getElementById('tree-x').onclick=()=>setTree(false);
+document.getElementById('ib-prop').onclick=()=>{ const id=S.sel || items()[0].id; S.tab='base'; select(id,false); };
+document.getElementById('ib-find').onclick=()=>{ if(S.sel) select(null); setTimeout(()=>{ const q=document.getElementById('q'); if(q) q.focus(); },0); };
+
+/* ================= 渲染迴圈 ================= */
+function applyTheme(){ scene.background=new THREE.Color(css('--stage')); }
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+function resize(){ const r=canvas.parentElement.getBoundingClientRect(); renderer.setSize(r.width,r.height,false); camera.aspect=r.width/Math.max(1,r.height); camera.updateProjectionMatrix(); }
+new ResizeObserver(resize).observe(canvas.parentElement);
+const v3=new THREE.Vector3();
+function loop(){
+  controls.update(); renderer.render(scene,camera);
+  const r=canvas.getBoundingClientRect();
+  labels.forEach(L=>{ const show=S.lbl && L.group===S.view; if(!show){ L.el.hidden=true; return; }
+    v3.copy(L.pos).project(camera); const vis=v3.z<1 && Math.abs(v3.x)<1.1 && Math.abs(v3.y)<1.1; L.el.hidden=!vis;
+    if(vis){ L.el.style.left=((v3.x+1)/2*r.width)+'px'; L.el.style.top=((1-v3.y)/2*r.height)+'px'; } });
+  requestAnimationFrame(loop);
+}
+applyTheme(); resize(); setView('bldg'); loop();
+})();
+</script>
