@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache">
 <title>建材護照示範系統</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -141,7 +142,8 @@ dl.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .btn.ghost{background:var(--surface-2);border:1px solid var(--line)}
 .route{border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13px}
 .route.ok{background:var(--carbon-soft)} .route.warn{background:var(--maint-soft)} .route.none{background:var(--surface-2)}
-.modal{position:fixed;inset:0;background:rgba(10,16,28,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal{position:fixed;inset:0;background:rgba(10,16,28,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal.open{display:flex}
 .sheet{background:var(--surface);color:var(--fg);border-radius:14px;max-width:460px;width:100%;max-height:90%;overflow:auto;padding:18px 20px;box-shadow:var(--shadow)}
 .sheet h3{margin:0 0 4px;font-size:18px}
 .sheet label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
@@ -212,7 +214,7 @@ dl.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
   </div>
 </div>
 
-<div class="modal" id="modal" hidden>
+<div class="modal" id="modal">
   <form class="sheet" id="rform">
     <h3>報修此設備</h3>
     <div class="pp-id" id="r-id"></div>
@@ -228,7 +230,7 @@ dl.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
     </div>
   </form>
 </div>
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" hidden style="display:none"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -581,18 +583,18 @@ function openRepair(it){
   repIt=it; const ws=warrState(it);
   document.getElementById('r-id').textContent=it.pid+'｜'+it.loc;
   document.getElementById('r-info').innerHTML=`<div class="route ${ws}"><b>${esc(it.name)}</b><br>型號：${V(it.model)}　廠商：${V(it.vendor)}<br>派工建議：${ws==='ok'?'保固內，直接派保固責任廠商':ws==='warn'?'已過保，安排現勘與報價':'無保固資料，客服確認後派工'}</div>`;
-  document.getElementById('r-desc').value=''; modal.hidden=false; setTimeout(()=>document.getElementById('r-desc').focus(),0);
+  document.getElementById('r-desc').value=''; modal.classList.add('open'); setTimeout(()=>document.getElementById('r-desc').focus(),0);
 }
-document.getElementById('r-cancel').onclick=()=>{modal.hidden=true;};
-modal.addEventListener('click',e=>{ if(e.target===modal) modal.hidden=true; });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') modal.hidden=true; });
+document.getElementById('r-cancel').onclick=()=>{modal.classList.remove('open');};
+modal.addEventListener('click',e=>{ if(e.target===modal) modal.classList.remove('open'); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') modal.classList.remove('open'); });
 document.getElementById('rform').addEventListener('submit',e=>{
   e.preventDefault(); const d=new Date(); const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   const no=`R${d.getFullYear()-1911}-${String(++seq).padStart(4,'0')}`;
   repIt.hist.push({d:ds,t:'報修',no,x:document.getElementById('r-desc').value+'（示範：已立案，待派工）'});
-  modal.hidden=true; S.tab='maint'; renderCard(); toast(`已建立示範報修單 ${no}，並記入此設備的維修履歷`);
+  modal.classList.remove('open'); S.tab='maint'; renderCard(); toast(`已建立示範報修單 ${no}，並記入此設備的維修履歷`);
 });
-function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,3200); }
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.hidden=false; t.style.display='block'; clearTimeout(toast._t); toast._t=setTimeout(()=>{t.hidden=true; t.style.display='none';},3200); }
 
 /* ================= 互動 ================= */
 const ray=new THREE.Raycaster(), mv=new THREE.Vector2(); let down=null;
